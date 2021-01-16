@@ -1,9 +1,7 @@
 # controller.py
-
+import PEv1_data as data
 import datetime
 import time
-import home_screen
-from tkinter import *
 import pe
 
 # START - setting things up ##########################################################
@@ -19,76 +17,59 @@ pe_outs['345'] = {}
 pe_outs['456'] = {}
 
 # creating two persons showing up - so we have something to run
-persons = ['11', '12']
+persons = ['pers101', 'pers102', 'pers103', 'pers104', 'pers105']
 
 time_label = None
-root = None
+global timer
 
 
-def start(staffers_home, rt,time_lbl):
-    time_label = time_lbl
-    root = rt
-    for i in persons:
-        pe_ins_unsol.append(['ip01', datetime.datetime.now().timestamp(),
-                             {'person': i, 'entity': None, 'actor': '~self', 'call': [['p0001', 1, 3]]}])
+def set_global_timer(timer_ref):
+    global timer
+    timer = timer_ref
+    pe.set_sim_time(timer_ref)
 
-    # ## END - setting things up ##########################################################
 
-    # START - clock function  ##########################################################
-    opening_time = 1609340400
+def check_entrant():
+    global timer
+    time_str= timer.get_formatted_time().strftime("%H:%M")
+    for ent in data.entrants:
+        if time_str == ent[0]:
+            pe_ins_unsol.append(['ip01', timer.get_time_stamp(),
+                                 {'person': ent[1], 'entity': None, 'actor': '~self', 'call': [['p0001', 1, 3]]}])
 
-    def clock():
-        multiplier = 100
-        current_time = opening_time + round((datetime.datetime.now().timestamp() - sim_start_time) * multiplier)
-        print(datetime.datetime.fromtimestamp(current_time))
-        time_lbl.config(text=str(datetime.datetime.fromtimestamp(current_time)))
 
-    # ## END - clock function  ##########################################################
-
+def start(root):
     # START - simulation ##########################################################
-    loop = 0
-    sim_start_time = (datetime.datetime.now().timestamp())
-
-    def simulate(loop):
-
-        # while loop < 10:  # alternative to the next line, keeps things going even if no pe_ins_unsol or pe_ins_sol
-        loop += 1
-        time.sleep(.1)
-
-        # Now let's run the protocol engine
-        print('\n========== RUNNING PROTOCOL ENGINE ================')
-        print('loop = ', loop)
-        clock()
-        pdata_appendums = pe.protocol_engine(pe_ins_sol, pe_waits, pe_ins_unsol, pe_outs)
-        for i in pdata_appendums:
-            pdata.append(i)
-
-        # Now let's run the protocol engine
-        print('\n========== USER INTERFACE ================')
-        print('loop = ', loop)
-        clock()
-        staffers_home.user_interface(pe_outs)
-        if loop == 25:
-            summary()
-        if loop <25:
-            root.after(1000, lambda: simulate(loop))
-
-
-    simulate(loop)
-
+    def simulate():
+        if not timer.pause():
+            # Now let's run the protocol engine
+            pdata_appendums, adat_appendums = pe.protocol_engine(pe_ins_sol, pe_waits, pe_ins_unsol, pe_outs)
+            for i in pdata_appendums:
+                pdata.append(i)
+            if adat_appendums:
+                for j in adat_appendums:
+                    try:
+                        data.adat[j[0]][j[1]].append(j[2])
+                    except:
+                        data.adat[j[0]][j[1]] = [j[2]]
+            check_entrant()
+        root.after(1000, simulate)
+    simulate()
 
 # ### END - simulation ##########################################################
+def poll_tasks(device_id):
+    return pe_outs.get(str(device_id))
 
-def return_completion(pe_in,time):
-    print(pe_outs['123'])
+
+def return_completion(pe_in, data_return):
+    global timer
     if pe_in:
-        pe_ins_sol.append([pe_in,time,{'text': 'Great Stuff!'}])
+        pe_ins_sol.append([pe_in, timer.get_time_stamp(), {'data': data_return}])
 
 
 # START - PRINTING FINAL STATUS - ONLY FOR REVIEW/TROUBLESHOOTING ##########
 def summary():
     print('\n========= Summary data at end of program =========================================================')
-
     print('\npdata =', pdata)
     for h in pdata:
         print(h)

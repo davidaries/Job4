@@ -1,10 +1,8 @@
 from tkinter import *
-import data
 from manage_window import manage_window
 import datetime
-import time
-import pe
 import PEv1_data as PEd
+from login_manager import login_manager as lm
 
 
 class home_screen:
@@ -34,10 +32,10 @@ class home_screen:
     :param self.lab_tech_home: the window that holds a reference to the lab tech's window
     :type self.reception_home: tk Window"""
 
-    def __init__(self, master, log_window,controller):
+    def __init__(self, master, log_window, controller, sim_time):
         self.opening_time = 1609340400
         self.controller = controller
-        self.sim_start_time = 0
+        self.sim_time = sim_time
         self.root = master
         self.horizontal_spacing = 0
         self.log_window_pointer = log_window
@@ -47,7 +45,12 @@ class home_screen:
         self.task_row = 0
         self.staff_windows = []
         self.staff_dict = {}
-        self.loop_count =0
+        self.staff_dict_new = {}
+        self.staff_login = []
+        self.loop_count = 0
+        self.login_widgets = None
+        self.home = None
+        self.win_num = 0
 
     def create_home_screen(self, v):
         """In charge of the creation of a new window to be displayed on the screen
@@ -56,49 +59,37 @@ class home_screen:
         :return: a reference to a window so it can be edited in the future
         :rtype: Window"""
         home = Toplevel(self.root)
-        home.geometry("260x300+" + self.horizontal_spacing.__str__() + v)
-        self.horizontal_spacing += 270
+        home.geometry("400x300+" + self.horizontal_spacing.__str__() + v)
+        self.horizontal_spacing += 450
         return home
 
-    def manage_staff_main_screen(self, home):
-        """This method populates the various staff screens, in reference to NOTE 1 above I believe this can be
-        simplified so there are not multiple methods to create the various home screen"""
-        staff_window_ids = PEd.staff_device
-        staffers = PEd.staffers
-        for staff in staffers:
-            device_id = staff_window_ids.get(staff)
-            self.staff_dict[device_id]=manage_window(self.create_home_screen('+150'), staffers.get(staff), self.log_window_pointer,
-                                                    device_id, self.root,home)
-            self.staff_dict[device_id].set_home()
+    def login_screen(self):
+        """This function creates the login screen for the various staffer by making calls to the login_manager
+        module"""
+        self.win_num+=1
+        window = self.create_home_screen('+150')
+        login_manager = lm(self.root, '~101', self.home, window)
+        login_manager.add_entry_id()
+        login_manager.add_entry_password()
+        login_manager.login_button()
 
-    def user_interface(self, pe_outs):
-        # d_out = None
-        token_ = None
-        # token = None
-        print('Current tasks (pe_outs) by device')
-        for i in pe_outs:
-            print('device_out = ', i)
-            for ii in pe_outs[i]:
-                print('  ', ii, pe_outs[i][ii])
-                self.staff_dict.get(i).send_data(ii, pe_outs[i][ii])
+    def login_success(self, staffer_id, window):
+        """"""
+        device_id = PEd.staff_device.get(staffer_id)
+        staff_info = PEd.staffers.get(staffer_id)
+        self.staff_dict[device_id] = manage_window(window, staff_info, self.log_window_pointer,
+                                                   device_id, self.root, self.home, self.sim_time)
 
-    def return_data(self, token):
-        print('it worked')
-        print(token)
-        self.controller.return_completion(token,datetime.datetime.now().timestamp())
-        # print('\nIf you want to respond to a pe_out')
-        # d_out = input("   Enter the device_out here: ")
-        # if d_out:
-        #     if d_out in pe_outs:
-        #         token_ = input("   Enter (copy and paste) its token here: ")
-        #     else:
-        #         print('Device_out not recognized')
-        # if token_:
-        #     token = int(token_)
-        #     if token in pe_waits:
-        #         pe_in = [token, datetime.datetime.now().timestamp(), {'text': 'Great Stuff!'}]
-        #         return pe_in
-        #         #pe_ins_sol.append(pe_in)
-        #     else:
-        #         print('Token not recognized')
+        self.staff_dict[device_id].clear_window()
+        self.staff_dict[device_id].set_home()
+        self.staff_dict[device_id].poll_controller()
 
+    def add_home(self, home):
+        self.home = home
+
+    def get_tasks(self, device_id):
+        return self.controller.poll_tasks(device_id)
+
+    def return_data(self, token, data_return):
+        sample_data = data_return
+        self.controller.return_completion(token, sample_data)
