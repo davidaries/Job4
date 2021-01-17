@@ -9,6 +9,9 @@ global sim_time
 
 
 def set_sim_time(s_time):
+    """This function creates a reference to the simulation time module used for reporting current simulatio time
+    :param s_time: a reference to the system_time module
+    :type s_time: module"""
     global sim_time
     sim_time = s_time
 

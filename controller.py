@@ -24,12 +24,17 @@ global timer
 
 
 def set_global_timer(timer_ref):
+    """This function creates a reference to the simulation time module used for reporting current simulatio time
+    :param timer_ref: a reference to the system_time module
+    :type timer_ref: module"""
     global timer
     timer = timer_ref
     pe.set_sim_time(timer_ref)
 
 
 def check_entrant():
+    """This function checks to see if any people are arriving and the current current time.  If there are any, they
+    are added to pe_ins_unsol to be processed by the PE"""
     global timer
     time_str= timer.get_formatted_time().strftime("%H:%M")
     for ent in data.entrants:
@@ -58,13 +63,24 @@ def start(root):
 
 # ### END - simulation ##########################################################
 def poll_tasks(device_id):
+    """This returns a list of tasks to be displayed by the a specific staffers window
+    :param device_id: unique id of a staffers device
+    :type device_id: str
+    :return: the tasks to be completed by the staffer
+    :rtype: list"""
     return pe_outs.get(str(device_id))
 
 
-def return_completion(pe_in, data_return):
+def return_completion(token, data_return):
+    """This function allows the staffers to return data to the controller to be processed by the controller once
+    they have been added to pe_ins_sol list
+    :param token: the token of the task in question
+    :type token: int
+    :param data_return: the data returned from the UI
+    :type data_return: list"""
     global timer
-    if pe_in:
-        pe_ins_sol.append([pe_in, timer.get_time_stamp(), {'data': data_return}])
+    if token:
+        pe_ins_sol.append([token, timer.get_time_stamp(), {'data': data_return}])
 
 
 # START - PRINTING FINAL STATUS - ONLY FOR REVIEW/TROUBLESHOOTING ##########

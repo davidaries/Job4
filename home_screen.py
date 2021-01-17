@@ -73,8 +73,27 @@ class home_screen:
         login_manager.add_entry_password()
         login_manager.login_button()
 
+    def login_all(self):
+        """This function creates a window for all available staff members and bypasses the login screen for all of
+        those staff members"""
+        for staff in PEd.staffers:
+            window = self.create_home_screen('+150')
+            staff_info = PEd.staffers.get(staff)
+            device_id = PEd.staff_device.get(staff)
+            self.staff_dict[device_id] = manage_window(window, staff_info, self.log_window_pointer,
+                                                       device_id, self.root, self.home, self.sim_time)
+
+            self.staff_dict[device_id].clear_window()
+            self.staff_dict[device_id].set_home()
+            self.staff_dict[device_id].poll_controller()
+
     def login_success(self, staffer_id, window):
-        """"""
+        """After a successful login from a staffer, this function creates a home screen for them with their
+        corresponding tasks.
+        :param staffer_id: the unique id of a staffer
+        :type staffer_id: str
+        :param window: a reference to the associated tkinter window
+        :type window: tk window"""
         device_id = PEd.staff_device.get(staffer_id)
         staff_info = PEd.staffers.get(staffer_id)
         self.staff_dict[device_id] = manage_window(window, staff_info, self.log_window_pointer,
@@ -85,11 +104,23 @@ class home_screen:
         self.staff_dict[device_id].poll_controller()
 
     def add_home(self, home):
+        """Sets a reference to home_screen that is later passed to the staffer windows so data can be sent back to
+        home_screen module, which has a connection with the controller module
+        :param home: reference to the home_screen module
+        :type home: class reference
+        """
         self.home = home
 
     def get_tasks(self, device_id):
+        """This function returns the current list of tasks for a staffer based on their device_id
+        :param device_id: a unique id for the staffers device
+        :type device_id: str"""
         return self.controller.poll_tasks(device_id)
 
     def return_data(self, token, data_return):
-        sample_data = data_return
-        self.controller.return_completion(token, sample_data)
+        """This function sends the appropriate data for the token in question to be processed by the controller
+        :param token: unique token id used for tasks
+        :type token: int
+        :param data_return: list of the corresponding data for the token
+        :type data_return: list"""
+        self.controller.return_completion(token, data_return)

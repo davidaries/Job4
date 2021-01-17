@@ -78,10 +78,13 @@ btn_sum = Button(root, text='Current Status', fg="black", bg="gray",
                      command= control.summary, height=1, width=13)
 btn_login_page = Button(root, text = 'login', fg="black", bg="gray",
                         command=staffers_home.login_screen, height=1, width=13)
+test = Button(root, text = 'test', fg="black", bg="gray",
+                        command=staffers_home.login_all, height=1, width=13)
 btn_pause.grid(column=0, row=1)
 btn_sum.grid(column=1,row=1)
 btn_unpause.grid(column=2, row=1)
-btn_login_page.grid(column = 1, row =2)
+btn_login_page.grid(column = 0, row =2)
+test.grid(column = 2, row =2)
 # creation of labels for the Log Window not needed for JOB 3
 logPadding = 25
 

@@ -5,6 +5,15 @@ import PEv1_data as pe_data
 
 
 class login_manager:
+    """The login manager class in in charge of handling the process of logging a staffer in to a window
+    :param root: a reference to the tkinter root screen needed to populate windows and use wait functions
+    :type root: tk window reference
+    :param language: the preset language '~101', which corresponds to english
+    :type: str
+    :param home: a reference to the home_screen module used to send info back after a successful login
+    :type home: module reference
+    :param window: reference to the corresponding tkinter window that has been created
+    :type window: tk window reference"""
     def __init__(self, root, language, home, window):
         self.root = root
         self.language = language
@@ -19,10 +28,7 @@ class login_manager:
         self.login_widgets = []
 
     def add_entry_id(self):
-        """This method adds an entry to the given window.  As it stands it only places the header for the entry box
-         but entry box functionality will be added in the next update
-        :param value: a dictionary reference to a value that needs to be written in the form a label to the screen
-        :type value: str
+        """This function adds an entry for the users unique id
         """
         lbl = Label(self.window, text=ld.get_text_from_dict(self.language, '~42') + ': ', font=self.medium_font)
         lbl.grid(row=self.task_row, column=0, ipady=self.row_padding, sticky='W')
@@ -33,10 +39,7 @@ class login_manager:
         self.task_row += 1
 
     def add_entry_password(self):
-        """This method adds an entry to the given window.  As it stands it only places the header for the entry box
-         but entry box functionality will be added in the next update
-        :param value: a dictionary reference to a value that needs to be written in the form a label to the screen
-        :type value: str
+        """This function adds an entry for the users password this is only diplayed as '*' on the UI side
         """
         lbl = Label(self.window, text=ld.get_text_from_dict(self.language, '~43') + ': ', font=self.medium_font)
         lbl.grid(row=self.task_row, column=0, ipady=self.row_padding, sticky='W')
@@ -48,12 +51,15 @@ class login_manager:
         self.task_row += 1
 
     def login_button(self):
+        """This function creates a login button that allows the user to submit their login information"""
         btn_submit = Button(self.window, text=ld.get_text_from_dict(self.language, '~20'),
-                            command=lambda: self.login_button_listener(),
+                            command=self.login_button_listener,
                             fg="black", bg="gray", height=1, width=10)
+        self.window.bind('<Return>', lambda event: self.login_button_listener())
         btn_submit.grid(row=self.task_row, column=0, sticky='S')
 
     def login_button_listener(self):
+        """This function process the data in the login screen to make sure that appropriate login credentials are given"""
         login_info = []
         for entry in self.login_widgets:
             login_info.append(entry[1].get())
@@ -69,10 +75,13 @@ class login_manager:
             self.unsuccessful_login("INVALID LOGIN")
 
     def unsuccessful_login(self, error):
+        """If a login is unsuccessful, this function displays the appropriate error and refreshes the login page"""
         Label(self.window, text=error, font=self.larger_font).grid(row=self.task_row + 1, column=1)
         self.root.after(1000, self.reset_login)
 
     def reset_login(self):
+        """This function is in charge of the actual refresh of the login page by clearing all data and
+        repopulating all of the widgets"""
         self.login_widgets.clear()
         self.clear_window()
         self.add_entry_id()
@@ -80,6 +89,10 @@ class login_manager:
         self.login_button()
 
     def successful_login(self, staffer_id):
+        """Once a user has entered the correct login data, a call to home_screen.login_success() is made that
+        creates and fills the staffers home screen with their corresponding tasks.
+        :param staffer_id: the unique id of the staffer that is used and linked to the screen created
+        :type staffer_id: str"""
         pe_data.staffer_login_info.get(staffer_id).__setitem__(1, True)
         self.home.login_success(staffer_id, self.window)
 

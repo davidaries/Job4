@@ -50,6 +50,8 @@ class manage_window:
         self.home = home
         self.log_window = log
         self.window = window
+        self.window.bind('<Return>', lambda event: self.return_input_listener())
+        self.working_token = None
         self.sim_time = sim_time
         self.staff_name = staffer.get('~1')
         self.staff_id = staffer.get('~23')
@@ -61,7 +63,6 @@ class manage_window:
         self.task_row = 0
         self.value_holder = []
         self.widgets = []
-        self.token = None
         self.token_list = []
         self.token_start_time = {}
         self.token_time_label = {}
@@ -70,9 +71,17 @@ class manage_window:
         self.widget_creator = wd(root, self.language, self.window)
 
     def get_device_id(self):
+        """Returns the device id of a staffers screen"""
         return self.device_id
 
+    def return_input_listener(self):
+        """This function allows the user to hit enter to invoke the submit_btn_listener instead of having to click the
+        actual button """
+        self.submit_btn_listener(self.working_token)
+
     def poll_controller(self):
+        """This function checks for new tasks (based on the device_id of the staffer) every second to see if the
+        staffer has any new tasks to complete and populates those tasks to their home screen."""
         tasks = self.home.get_tasks(self.device_id)
         if tasks:
             for task in tasks:
@@ -87,10 +96,14 @@ class manage_window:
         self.root.after(1000, self.poll_controller)
 
     def update_wait_time(self, token):
+        """This function updates the wait time for a person that has arrived in the staffers home screen
+        :param token: the randomly generated value associated with the task for that person
+        :type token: int"""
         display_t_diff = self.sim_time.get_time_difference(self.token_start_time.get(token))
         self.token_time_label.get(token).config(text=display_t_diff)
 
     def refresh_home(self):
+        """This function simply refreshes the staffers home screen after completing a task"""
         tasks = self.home.get_tasks(self.device_id)
         if tasks:
             self.clear_window()
@@ -100,6 +113,11 @@ class manage_window:
                 self.send_data(token, tasks.get(token))
 
     def send_data(self, token, raw_data):
+        """This function sends a token and the necessary data for a task to a task screen to be completed by the staffer
+        :param token: randomly generated value used to distinguish the task
+        :type token: int
+        :param raw_data: the data needed for creating the task screen of the user processed by the function
+        :type raw_data: list"""
         if self.at_home:
             task_id = raw_data[3]
             person_id = raw_data[0]
@@ -151,6 +169,7 @@ class manage_window:
         """This function adds the name of a person who needs to be processed by the staffer
         :param person_id: identification number of the person
         :type person_id: int
+
         """
         name = query.adat_person_key(person_id, '~1')[1]  # maybe list handling should be done in query.py
         label_name = Label(self.window, text=name, font=self.widget_creator.medium_font)
@@ -175,7 +194,7 @@ class manage_window:
         """
         self.at_home = False
         self.clear_window()
-        self.token = token
+        self.working_token = token
         for item in task_window_info:
             if item[0] == 'Fixed':
                 self.widget_creator.add_label(item[1], person_id)
@@ -211,12 +230,14 @@ class manage_window:
                             fg="black", bg="gray", height=1, width=10)
         btn_submit.grid(row=self.widget_creator.task_row, column=0, sticky='S')
         btn_return = Button(self.window, text=ld.get_text_from_dict(self.language, '~8'),  # ~8 for return/regresa
-                            command=self.return_btn_listener,
+                            command=self.return_home,
                             fg="black", bg="gray", height=1, width=10)
         btn_return.grid(row=self.widget_creator.task_row, column=1, sticky='S')
         self.task_row += 1
 
-    def return_btn_listener(self):
+    def return_home(self):
+        """This function returns the staffer to their home screen without completing the job so the person in question
+        will remain in their task screen"""
         self.token = None
         self.at_home = True
         self.value_holder.clear()
@@ -224,31 +245,41 @@ class manage_window:
         self.refresh_home()
 
     def submit_btn_listener(self, token):
-        """an action listener for the submit button.  As it stands, it only takes the staffer back to their home screen
-        but this is where the addition of data to pdata and the log will go
+        """an action listener for the submit button.  It is in charge of sending data back to the controller to be
+        that is later processed by the protocol engine.  Because of this I have implemented a simple check to
+        make sure that the data being given back has appropriate values that can be processed by the PE.
+        After a task has been successfully completed the appropriate data is sent back to the controller.  If it
+        is not completed successfully, the staffer returns to their task screen after receiving a error on screen
         """
+        self.working_token = token
         self.manage_widgets()
+        data_return = self.add_to_log()
         self.widgets.clear()
         self.clear_window()
-        data_return = self.add_to_log()
-        self.token = None
-        self.at_home = True
-        self.home.return_data(token, data_return)
-        self.token_list.remove(token)
-        self.token_start_time.pop(token)
-        self.token_time_label.pop(token)
-        self.tokens_completed.append(token)
-        self.widget_creator.clear_widget_data()
-        self.task_row = 10
-        self.set_home()
-        self.refresh_home()
+        if data_return == 'NO DATA GIVEN':
+            self.clear_window()
+            Label(self.window, text="INCORRECT DATA", font='Helvetica 24 bold').pack()
+            self.root.after(1000, self.return_home)
+
+        else:
+            self.at_home = True
+            self.home.return_data(token, data_return)
+            self.token_list.remove(token)
+            self.token_start_time.pop(token)
+            self.token_time_label.pop(token)
+            self.tokens_completed.append(token)
+            self.working_token = None
+            self.widget_creator.clear_widget_data()
+            self.task_row = 10
+            self.set_home()
+            self.refresh_home()
 
     def add_to_log(self):
         """This function adds the data that will be sent back to the protocol manager to the log window
         print statement is so you can see how the actual value looks in the program not just the log printed version"""
-        if len(self.value_holder) > 0:
+        if len(self.value_holder) == len(self.widgets) and len(self.value_holder)>0:
             return_data = []
-            for _ in range(len(self.value_holder)):
+            for _ in self.value_holder:
                 return_data.append(self.value_holder.pop())
             return return_data
         else:
@@ -277,6 +308,7 @@ class manage_window:
         window.  Added exceptions for when there are no values given so empty lists are not added or displayed"""
         widgets = self.widget_creator.return_widget_data()
         for widget in widgets:
+            self.widgets.append(widget)
             if len(widget) == 3:
                 if len(widget[1].get()) > 0:
                     self.add_value(widget[0], widget[2].get(widget[1].get()))
@@ -284,6 +316,8 @@ class manage_window:
             elif widget[0][0] == '~18':  # if it is a checkbox input
                 if widget[1][0].get() == 1:
                     self.add_value(widget[0][0], widget[1][1])
+                else:
+                    self.widgets.pop()
             else:
                 if len(widget[1].get()) > 0:
                     self.add_value(widget[0], widget[1].get())
