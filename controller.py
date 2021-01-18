@@ -1,7 +1,5 @@
 # controller.py
 import PEv1_data as data
-import datetime
-import time
 import pe
 
 # START - setting things up ##########################################################

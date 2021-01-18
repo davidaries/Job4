@@ -5,16 +5,38 @@ import PEv1_data as pe_data
 
 
 class login_manager:
-    """The login manager class in in charge of handling the process of logging a staffer in to a window
-    :param root: a reference to the tkinter root screen needed to populate windows and use wait functions
-    :type root: tk window reference
-    :param language: the preset language '~101', which corresponds to english
-    :type: str
-    :param home: a reference to the home_screen module used to send info back after a successful login
-    :type home: module reference
-    :param window: reference to the corresponding tkinter window that has been created
-    :type window: tk window reference"""
+    """ a module created to manage a staffer logging into a specific window
+    :param self.root: a reference to the tkinter root screen needed to populate windows and use wait functions
+    :type self.root: tk window reference
+    :param self.language: the preset language '~101', which corresponds to english
+    :type self.language: str
+    :param self.home: a reference to the home_screen module used to send info back after a successful login
+    :type self.home: module reference
+    :param self.window: reference to the corresponding tkinter window that has been created
+    :type self.window: tk window reference
+    :param self.medium_font: a generated font used within the display
+    :type self.medium_font: tk_Font
+    :param self.larger_font: a generated font used within the display
+    :type self.larger_font: tk_Font
+    :param self.column_padding: value used to space out values placed into a window
+    :type self.column_padding: int
+    :param self.row_padding: value used to pad rows to make the spacing between them larger
+    :type self.row_padding: int
+    :param self.row_current: value used to place values in the home screen in the appropriate rows
+    :type self.row_current: int
+    :param self.task_row: value used to increment the current row placement
+    :type self.task_row: int
+    """
     def __init__(self, root, language, home, window):
+        """The login manager class in in charge of handling the process of logging a staffer in to a window
+        :param root: a reference to the tkinter root screen needed to populate windows and use wait functions
+        :type root: tk window reference
+        :param language: the preset language '~101', which corresponds to english
+        :type self.language: str
+        :param home: a reference to the home_screen module used to send info back after a successful login
+        :type home: module reference
+        :param window: reference to the corresponding tkinter window that has been created
+        :type window: tk window reference"""
         self.root = root
         self.language = language
         self.home = home

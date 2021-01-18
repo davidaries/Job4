@@ -1,6 +1,5 @@
 from tkinter import *
 from manage_window import manage_window
-import datetime
 import PEv1_data as PEd
 from login_manager import login_manager as lm
 
@@ -8,13 +7,17 @@ from login_manager import login_manager as lm
 class home_screen:
     """The home_screen class is in charge of creating and managing the home screens for the various staffers
     based on the different kinds of staff windows, the handling of the person populated on their task list
-    will be done based on their job type
-    :param self.main_program: reference to the main tk program used for the creation of additional windows
-    :type self.main_program: tk class
+    will be done based on their job type in manage_window module
+    :param self.controller: a reference to the controller module
+    :type self.controller: module
+    :param self.sim_time: a reference to the system_time module used to manage the timing of the simulation
+    :type self.sim_time: module
+    :param self.root: reference to the main tk program used for the creation of additional windows
+    :type self.root: tk class reference
+    :param self.log_window_pointer: pointer to reference the log window which is needed to write data to the log window
+    :type self.log_window_pointer: tk module
     :param self.horizontal_spacing: value used to space the windows horizontally across the screen
     :type self.horizontal_spacing: int
-    :param self.log_window_pointer: pointer to reference the log window which is needed to write data to the log window
-    :type self.log_window_pointer: tk class
     :param self.column_padding: value used to space out values placed into a window
     :type self.column_padding: int
     :param self.row_padding: value used to pad rows to make the spacing between them larger
@@ -23,34 +26,36 @@ class home_screen:
     :type self.row_current: int
     :param self.task_row: value used to increment the current row placement
     :type self.task_row: int
-    :param self.reception_home: the window that holds a reference to the receptionist's window
-    :type self.reception_home: tk Window
-    :param self.assistant_home: the window that holds a reference to the assistant's window
-    :type self.assistant_home: tk Window
-    :param self.provider_home: the window that holds a reference to the provider's window
-    :type self.provider_home: tk Window
-    :param self.lab_tech_home: the window that holds a reference to the lab tech's window
-    :type self.reception_home: tk Window"""
+    :param self.staff_dict: stores the tk window of a staffer where the dict key is their staff_id
+    :type self.staff_dict: dict
+    :param self.staff_login: is
+    :param self.home: a reference to the home_screen module created in main.py given to children windows so data
+    can be returned in teh future
+    :type self.home: module reference"""
 
     def __init__(self, master, log_window, controller, sim_time):
-        self.opening_time = 1609340400
+        """Sets up the home_screen module
+        :param master: a reference to the master window for the UI
+        :type master: tk window reference
+        :param log_window: no longer in use but kept around incase it might be useful in the future.  This is a
+        reference to the log window information can be displayed
+        :type log_window: tk window
+        :param controller: a reference to the controller class used to send data back and forth from the UI
+        :type controller: module
+        :param sim_time: a reference to the system_time module used for recording current time in the simulation
+        :type sim_time: module
+        """
         self.controller = controller
         self.sim_time = sim_time
         self.root = master
-        self.horizontal_spacing = 0
         self.log_window_pointer = log_window
+        self.horizontal_spacing = 0
         self.column_padding = 80
         self.row_padding = 12
         self.row_current = 2
         self.task_row = 0
-        self.staff_windows = []
         self.staff_dict = {}
-        self.staff_dict_new = {}
-        self.staff_login = []
-        self.loop_count = 0
-        self.login_widgets = None
         self.home = None
-        self.win_num = 0
 
     def create_home_screen(self, v):
         """In charge of the creation of a new window to be displayed on the screen
@@ -66,7 +71,6 @@ class home_screen:
     def login_screen(self):
         """This function creates the login screen for the various staffer by making calls to the login_manager
         module"""
-        self.win_num+=1
         window = self.create_home_screen('+150')
         login_manager = lm(self.root, '~101', self.home, window)
         login_manager.add_entry_id()
@@ -80,6 +84,7 @@ class home_screen:
             window = self.create_home_screen('+150')
             staff_info = PEd.staffers.get(staff)
             device_id = PEd.staff_device.get(staff)
+            PEd.staffer_login_info.get(staff).__setitem__(1, True)
             self.staff_dict[device_id] = manage_window(window, staff_info, self.log_window_pointer,
                                                        device_id, self.root, self.home, self.sim_time)
 

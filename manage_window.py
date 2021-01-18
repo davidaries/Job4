@@ -1,10 +1,5 @@
-from datetime import datetime
 from tkinter import *
 import language_dictionary as ld
-# import datetime
-# import time
-# import home_screen
-# import PEv1_data as pe_data
 import query
 from widgets import widgets as wd
 
@@ -13,10 +8,16 @@ class manage_window:
     """
     :param self.root: a reference to the root window for the UI
     :type self.root: Tkinter window
+    :param self.home: reference to the home_screen.py module so functions can be called within manage_window
+    :type self.home: module reference
     :param self.log_window: a reference to the log window used for displaying data received from task window
     :type self.log_window: Tkinter window
     :param self.window: the window of this specific staffer
     :type: self.window: Tkinter window
+    :param self.working_token: use to reference the token value of a task being worked on by the staffer
+    :type self.working_token: int
+    :param self.sim_time: a reference to the system_time module
+    :type self.sim_time: Module reference
     :param self.staff_name: the name of the staff member who owns the window
     :type self.staff_name: str
     :param self.staff_id: and identification of the staffers role
@@ -37,20 +38,42 @@ class manage_window:
     :type self.value_holder: list
     :param self.widgets: a list created to store the appropriate values for the widgets added to the task screen
     :type self.widgets: list
-    :param self.token: the token value for the current job being processed by the staffer
-    :type self.token: int
     :param self.token_list: storage of the current list of tokens TO BE USED FOR TIMED POLL OF PEO_Q
     :type self.token_list: list
+    :param self.token_start_time: a dictionary assiciating the token value with the time arrived
+    :type self.token_start_time: dictionary
+    :param self.token_time_label: a dictionary where the token value is used to determine the label associated with a token
+    :type self.token_time_label: dictionary
+    :param self.tokens_completed: the tokens, which correspond to tasks, completed by the staffer
+    :type self.tokens_completed: list
     :param self.at_home: a value to store whether the user is currently in the home screen or not FOR POLLING EVERY 10 seconds
     :type self.at_home: bool
+    :param self.widget_creator: a reference for the module used to create the widgets displayed on the UI
+    :type self.widget_creator: module
     """
 
     def __init__(self, window, staffer, log, device_id, root, home, sim_time):
+        """The basic constructor for the manage_window module
+        :param window: the window of this specific staffer
+        :type: window: Tkinter window
+        :param staffer: the information about the staffer who has logged into this window
+        :type staffer: list
+        :param log: a reference to the login window used for displaying information when needed.  It is not currently
+        being used but will leave it here incase it is needed in the future
+        :type log: window reference
+        :param device_id: the unique id number of the device that is logged into a window
+        :type device_id: int
+        :param root: a reference to the root window for the UI
+        :type root: Tkinter window
+        :param home: reference to the home_screen.py module so functions can be called within manage_window
+        :type home: module reference
+        :param sim_time: a reference to the system_time module used when timing is needed within the siumlation
+        :type sim_time: module reference"""
         self.root = root
         self.home = home
         self.log_window = log
         self.window = window
-        self.window.bind('<Return>', lambda event: self.return_input_listener())
+        self.window.bind('<Return>', lambda event: self.return_input_listener()) #binds Return key to submit button
         self.working_token = None
         self.sim_time = sim_time
         self.staff_name = staffer.get('~1')
@@ -77,7 +100,7 @@ class manage_window:
     def return_input_listener(self):
         """This function allows the user to hit enter to invoke the submit_btn_listener instead of having to click the
         actual button """
-        self.submit_btn_listener(self.working_token)
+        self.submit_btn_listener()
 
     def poll_controller(self):
         """This function checks for new tasks (based on the device_id of the staffer) every second to see if the
@@ -152,7 +175,7 @@ class manage_window:
         self.add_column_headers()
 
     def add_column_headers(self):
-        """This function adds the headers for the tasks in the home screen (name     task)"""
+        """This function adds the headers for the tasks in the home screen"""
         label_name = Label(self.window, text=ld.get_text_from_dict(self.language, '~1') + '\t',
                            font=self.widget_creator.medium_font)
         label_name.grid(column=0, row=self.row_current, ipady=self.row_padding, sticky='W')
@@ -169,8 +192,10 @@ class manage_window:
         """This function adds the name of a person who needs to be processed by the staffer
         :param person_id: identification number of the person
         :type person_id: int
-
-        """
+        :param priority: the priority level of a task
+        :type priority: int
+        :param token: the token value of the task in question
+        :type token: int"""
         name = query.adat_person_key(person_id, '~1')[1]  # maybe list handling should be done in query.py
         label_name = Label(self.window, text=name, font=self.widget_creator.medium_font)
         label_name.grid(column=0, row=self.row_current, ipady=self.row_padding, sticky='W')
@@ -182,13 +207,13 @@ class manage_window:
         label_priority.grid(column=2, row=self.row_current, ipady=self.row_padding)
 
     def write_task_screen(self, task_window_info, person_id, token, task_id):
-        """This method writes the widgets to the task screen of the corresponding staffer
-        :param token: unique token id for the given task
-        :type token: int
-        :param person_id: the unique identity number of the person being processed
-        :type person_id: int
+        """This function makes calls to widgets module to display widgets in the UI
         :param task_window_info: list of task widgets that need to be added to the task screen
         :type task_window_info: list
+        :param person_id: the unique identity number of the person being processed
+        :type person_id: int
+        :param token: unique token id for the given task
+        :type token: int
         :param task_id: ~vocab reference to the task that needs to be completed by the staffer
         :type task_id: str
         """
@@ -211,22 +236,23 @@ class manage_window:
             elif item[0] == 'CheckBoxes':
                 self.widget_creator.add_check_boxes(item[1:])
             elif item[0] == 'Button':
-                self.add_button_submit(item[1], token)
+                self.add_button_submit(item[1])
 
     def clear_window(self):
         """This function clears the window that it is given allowing it to be a blank canvas before the window
-        is populated with new data
+        is repopulated with different widgets
         """
         for widget in self.window.winfo_children():
             widget.destroy()
 
-    def add_button_submit(self, value, token):
+    def add_button_submit(self, value):
         """this method adds a submit button to a given window
         :param value: a dictionary reference to a value that needs to be written in the form a label to the screen
         :type value: str
+
         """
         btn_submit = Button(self.window, text=ld.get_text_from_dict(self.language, value),
-                            command=lambda: self.submit_btn_listener(token),
+                            command=lambda: self.submit_btn_listener(),
                             fg="black", bg="gray", height=1, width=10)
         btn_submit.grid(row=self.widget_creator.task_row, column=0, sticky='S')
         btn_return = Button(self.window, text=ld.get_text_from_dict(self.language, '~8'),  # ~8 for return/regresa
@@ -238,20 +264,18 @@ class manage_window:
     def return_home(self):
         """This function returns the staffer to their home screen without completing the job so the person in question
         will remain in their task screen"""
-        self.token = None
         self.at_home = True
         self.value_holder.clear()
         self.widget_creator.clear_widget_data()
         self.refresh_home()
 
-    def submit_btn_listener(self, token):
+    def submit_btn_listener(self):
         """an action listener for the submit button.  It is in charge of sending data back to the controller to be
         that is later processed by the protocol engine.  Because of this I have implemented a simple check to
         make sure that the data being given back has appropriate values that can be processed by the PE.
         After a task has been successfully completed the appropriate data is sent back to the controller.  If it
         is not completed successfully, the staffer returns to their task screen after receiving a error on screen
         """
-        self.working_token = token
         self.manage_widgets()
         data_return = self.add_to_log()
         self.widgets.clear()
@@ -263,11 +287,11 @@ class manage_window:
 
         else:
             self.at_home = True
-            self.home.return_data(token, data_return)
-            self.token_list.remove(token)
-            self.token_start_time.pop(token)
-            self.token_time_label.pop(token)
-            self.tokens_completed.append(token)
+            self.home.return_data(self.working_token, data_return)
+            self.token_list.remove(self.working_token)
+            self.token_start_time.pop(self.working_token)
+            self.token_time_label.pop(self.working_token)
+            self.tokens_completed.append(self.working_token)
             self.working_token = None
             self.widget_creator.clear_widget_data()
             self.task_row = 10
@@ -279,7 +303,7 @@ class manage_window:
         print statement is so you can see how the actual value looks in the program not just the log printed version"""
         if len(self.value_holder) == len(self.widgets) and len(self.value_holder)>0:
             return_data = []
-            for _ in self.value_holder:
+            for _ in range(len(self.value_holder)):
                 return_data.append(self.value_holder.pop())
             return return_data
         else:
@@ -293,14 +317,14 @@ class manage_window:
         :type value: int or str"""
         try:
             if int(value):
-                self.value_holder.append({'k': key, 'v': value, 'vt': 'float', 'units': '~41'})
+                self.value_holder.append({'k': key, 'v': value, 'vt': 'f', 'units': '~41'})
             elif bool(value):
-                self.value_holder.append({'k': key, 'v': value, 'vt': 'bool', 'units': None})
+                self.value_holder.append({'k': key, 'v': value, 'vt': 'b', 'units': None})
         except:
             if value[0] == '~':
-                self.value_holder.append({'k': key, 'v': value, 'vt': 'vocab', 'units': None})
+                self.value_holder.append({'k': key, 'v': value, 'vt': '~', 'units': None})
             else:
-                self.value_holder.append({'k': key, 'v': value, 'vt': 'str', 'units': None})
+                self.value_holder.append({'k': key, 'v': value, 'vt': 's', 'units': None})
 
     def manage_widgets(self):
         """This function loops through the widgets stored in the task screen for the staffer.  It's job is to retrieve
